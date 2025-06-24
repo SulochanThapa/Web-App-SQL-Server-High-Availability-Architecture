@@ -11,7 +11,6 @@ In your existing setup:
 
 ### Option 1: Centralized Network File System (Recommended)
 
-![Network File System Diagram](https://example.com/nfs-diagram.png)
 
 1. **Set up a Shared Network File System**
    - Configure the NAS (192.168.1.20) to expose a file share via NFS or SMB
