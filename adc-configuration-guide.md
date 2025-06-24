@@ -1,8 +1,5 @@
 # ADC Configuration Guide for Web and SQL Server Architecture
 
-**Date:** 2025-06-24
-**Prepared for:** RaiPragati
-
 ## Overview
 
 This guide provides step-by-step instructions to reconfigure your existing infrastructure according to the high-availability architecture. We'll redirect traffic from your firewall to the ADC load balancer and configure proper redundancy for both web and database tiers.
