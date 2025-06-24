@@ -254,7 +254,88 @@ This document outlines a comprehensive architecture for deploying a high-availab
 - Regular review of performance metrics
 - SQL Server index maintenance
 - Application code optimization
+# Updated Network Architecture Diagram
 
+```
+                              INTERNET
+                                 |
+                                 |
+                         +-------+--------+
+                         |                |
+                         |    Firewall    |
+                         |                |
+                         +-------+--------+
+                                 |
+                                 | (Traffic for abc.com)
+                                 |
+                           +----------------+
+                           |                |
+                           |  ADC/Load      |
+                           |  Balancer      |
+                           |  192.168.1.10  |
+                           |                |
+                           +--------+-------+
+                                    |
+                 +------------------+------------------+
+                 |                                     |
+        +--------+-------+                   +---------+------+
+        |                |                   |                |
+        |  Web Server    |                   |  Web Server    |
+        |  VM1 (ACTIVE)  |                   |  VM2           |
+        |  192.168.1.11  |                   |  192.168.1.12  |
+        |  Web App+API   |                   |  Web App+API   |
+        +--------+-------+                   +---------+------+
+                 |                                     |
+                 +------------------+------------------+
+                                    |
+           +----------------------+-+----------------------+
+           |                      |                        |
++----------+---------+   +--------+---------+    +---------+--------+
+|                    |   |                  |    |                  |
+| SQL Server Primary |   | SQL Server       |    | NAS Storage      |
+| VM3 (ACTIVE)       |   | Secondary VM4    |    | Backup Location  |
+| 192.168.1.13       |   | 192.168.1.14     |    | 192.168.1.20     |
+|                    |   |                  |    |                  |
++--------------------+   +------------------+    +------------------+
+
+Legend:
+- Solid lines: Active connections
+- ACTIVE: Currently serving production traffic
+- Web App+API: Existing application components
+```
+
+## Current State vs Target State
+
+### Current State
+- Internet traffic for abc.com passes through the firewall directly to VM1 (192.168.1.11)
+- VM1 hosts your existing web application and API
+- VM3 (192.168.1.13) hosts your active SQL Server database
+- No redundancy or load balancing in place
+
+### Target State
+- Internet traffic for abc.com passes through the firewall to the ADC (192.168.1.10)
+- ADC distributes traffic between VM1 and VM2
+- VM1 and VM2 both host identical copies of your web application and API
+- Database layer has high availability between VM3 (primary) and VM4 (secondary)
+- NAS provides backup storage for all components
+
+## Migration Considerations
+
+The migration from current to target state requires careful planning to minimize downtime:
+
+1. **ADC Implementation**: Deploy and configure the ADC before changing firewall rules
+2. **VM2 Preparation**: Set up VM2 with identical configuration to VM1 before adding to the load balancer
+3. **SQL HA Setup**: Configure VM4 and establish high availability with VM3 before changing connection strings
+4. **Cutover Strategy**: Plan for a maintenance window to update firewall rules and redirect traffic to the ADC
+
+## Connection Flow
+
+1. **External Users**: Connect to abc.com
+2. **Firewall**: Routes traffic to ADC (192.168.1.10)
+3. **ADC**: Load balances between VM1 and VM2
+4. **Web Tier**: Processes requests and connects to SQL Server
+5. **Database Tier**: Primary SQL Server (VM3) handles database requests with VM4 as standby
+6. **Backups**: All components back up to NAS (192.168.1.20)
 ## Conclusion
 
 This architecture provides a robust, high-availability solution for hosting web applications with SQL Server backends. The design balances performance, availability, and cost considerations while providing multiple layers of redundancy to protect against various failure scenarios.
